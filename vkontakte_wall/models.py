@@ -20,9 +20,11 @@ parsed = Signal(providing_args=['sender', 'instance', 'container'])
 
 
 class VkontakteWallManager(VkontakteManager):
-    def create(self, commit_remote=True, *args, **kwargs):
-        return super(VkontakteWallManager, self).create(
-                commit_remote=True, *args, **kwargs)
+    pass
+
+#    def create(self, commit_remote=True, *args, **kwargs):
+#        return super(VkontakteWallManager, self).create(
+#                commit_remote=True, *args, **kwargs)
 
 
 class PostRemoteManager(VkontakteWallManager, ParseUsersMixin, ParseGroupsMixin):

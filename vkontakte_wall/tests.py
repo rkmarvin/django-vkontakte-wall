@@ -124,7 +124,6 @@ class VkontakteWallTest(TestCase):
         self.assertEqual(comments[0].post, post)
 
         post.fetch_comments(all=True)
-#        self.assertTrue(Comment.objects.count() > len(comments)) only 1 comment
 
     @mock.patch('vkontakte_users.models.User.remote.get_by_slug', side_effect=lambda s: UserFactory.create())
     def test_fetch_group_post_comments(self, *args, **kwargs):
@@ -196,7 +195,7 @@ class VkontakteWallTest(TestCase):
     def test_fetch_comment_likes(self, *args, **kwargs):
         user = UserFactory.create(remote_id=TRAVIS_USER_ID)
         post = PostFactory.create(remote_id=TR_POST_ID, wall_owner=user)
-        comment = post.fetch_comments()[0]
+        comment = post.fetch_comments().last()
 
         self.assertTrue(comment.like_users.count() == 0)
 
@@ -247,7 +246,6 @@ class VkontakteWallTest(TestCase):
             '''
         group = GroupFactory.create(remote_id=OWNER_ID)
         post = PostFactory.create(remote_id=TR_POST_ID, wall_owner=group)
-        #instance = Comment(post=post)
         instance = CommentFactory.create(post=post)
         author = UserFactory.create(remote_id=16271479)
         instance.parse(json.loads(response)['response'][1])
@@ -320,10 +318,8 @@ class VkontakteWallTest(TestCase):
 
     def test_post_crud_methods(self):
         message = 'Test message'
-        group = GroupFactory.create(remote_id=OWNER_ID)
-        #user = UserFactory.create(remote_id=TRAVIS_USER_ID)
-        mock_post = PostFactory.create(text=message, wall_owner=group)
-        #mock_post = PostFactory.create(text=message, wall_owner=user)
+        user = UserFactory.create(remote_id=TRAVIS_USER_ID)
+        mock_post = PostFactory.create(text=message, wall_owner=user)
         kwargs = {}
         for key in mock_post.__dict__:
             if not key.startswith('_'):
@@ -335,7 +331,6 @@ class VkontakteWallTest(TestCase):
 
         #create by objects api
         post = Post.objects.create(**kwargs)
-        post = mock_post
 
         self.assertTrue(post.remote_id > 0)
         self.assertEqual(post.text, kwargs['text'])
@@ -364,11 +359,10 @@ class VkontakteWallTest(TestCase):
         del kwargs['id']
         del kwargs['remote_id']
         del kwargs['archived']
-        #post = Post()
-        post = PostFactory.create()
+        post = Post()
         post.__dict__.update(kwargs)
         post.text = message + message
-        post.save()
+        post.save(commit_remote=True)
 
         self.assertTrue(post.remote_id > 0)
         self.assertEqual(post.text, message + message)
@@ -377,9 +371,9 @@ class VkontakteWallTest(TestCase):
 
     def test_comment_crud_methods(self):
         text = 'Test message'
-        group = GroupFactory.create(remote_id=OWNER_ID)
-        post = PostFactory.create(text=text, wall_owner=group)
-        mock_comment = CommentFactory.create(text=text, post=post, wall_owner=group)
+        user = UserFactory.create(remote_id=TRAVIS_USER_ID)
+        post = PostFactory.create(remote_id=TR_POST_ID, wall_owner=user)
+        mock_comment = CommentFactory.create(text=text, post=post, wall_owner=user)
         kwargs = {}
         for key in mock_comment.__dict__:
             if not key.startswith('_'):
@@ -420,10 +414,8 @@ class VkontakteWallTest(TestCase):
         comment = Comment()
         comment.__dict__.update(kwargs)
         comment.text = text + text
-        comment.save()
+        comment.save(commit_remote=True)
 
         self.assertTrue(comment.remote_id > 0)
         self.assertEqual(comment.text, text + text)
-
-        # remove template post
-        post.delete()
+        comment.delete()
