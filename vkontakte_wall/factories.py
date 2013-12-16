@@ -6,7 +6,7 @@ from datetime import datetime
 import factory
 
 
-class MockDjangoMoelFactory(DjangoModelNoCommitFactory):
+class MockDjangoModelFactory(DjangoModelNoCommitFactory):
 
     @classmethod
     def get_mock_params_dict(cls, obj, **kwargs):
@@ -21,7 +21,7 @@ class MockDjangoMoelFactory(DjangoModelNoCommitFactory):
         return result
 
 
-class PostFactory(MockDjangoMoelFactory):
+class PostFactory(MockDjangoModelFactory):
     FACTORY_FOR = Post
 
     date = datetime.now()
@@ -36,7 +36,7 @@ class GroupPostFactory(PostFactory):
     remote_id = factory.LazyAttributeSequence(lambda o, n: '-%s_%s' % (o.wall_owner.remote_id, n))
 
 
-class CommentFactory(MockDjangoMoelFactory):
+class CommentFactory(MockDjangoModelFactory):
     FACTORY_FOR = Comment
 
     date = datetime.now()
