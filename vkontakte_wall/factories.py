@@ -4,11 +4,24 @@ from vkontakte_api.factories import DjangoModelNoCommitFactory
 from models import Post, Comment
 from datetime import datetime
 import factory
-#import random
 
 
-#class PostFactory(factory.DjangoModelFactory):
-class PostFactory(DjangoModelNoCommitFactory):
+class MockDjangoMoelFactory(DjangoModelNoCommitFactory):
+
+    @classmethod
+    def get_mock_params_dict(cls, obj, **kwargs):
+        result = {}
+        for key, value in obj.__dict__.iteritems():
+            if not key.startswith('_'):
+                result[key] = value
+        del result['id']
+        del result['remote_id']
+        del result['archived']
+        result.update(kwargs)
+        return result
+
+
+class PostFactory(MockDjangoMoelFactory):
     FACTORY_FOR = Post
 
     date = datetime.now()
@@ -23,8 +36,7 @@ class GroupPostFactory(PostFactory):
     remote_id = factory.LazyAttributeSequence(lambda o, n: '-%s_%s' % (o.wall_owner.remote_id, n))
 
 
-#class CommentFactory(factory.DjangoModelFactory):
-class CommentFactory(DjangoModelNoCommitFactory):
+class CommentFactory(MockDjangoMoelFactory):
     FACTORY_FOR = Comment
 
     date = datetime.now()

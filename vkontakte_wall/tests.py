@@ -320,52 +320,58 @@ class VkontakteWallTest(TestCase):
         message = 'Test message'
         user = UserFactory.create(remote_id=TRAVIS_USER_ID)
         mock_post = PostFactory.create(text=message, wall_owner=user)
-        kwargs = {}
-        for key in mock_post.__dict__:
-            if not key.startswith('_'):
-                kwargs[key] = mock_post.__dict__[key]
-        del kwargs['id']
-        del kwargs['remote_id']
-        del kwargs['archived']
-        kwargs['commit_remote'] = True
 
         #create by objects api
-        post = Post.objects.create(**kwargs)
+        post = Post.objects.create(
+                **PostFactory.get_mock_params_dict(
+                    mock_post, commit_remote=True)
+        )
 
         self.assertTrue(post.remote_id > 0)
-        self.assertEqual(post.text, kwargs['text'])
+        self.assertEqual(post.text, message)
+
+        fetched_post = Post.remote.fetch(ids=[post.remote_id]).first()
+        self.assertEqual(fetched_post.text, post.text)
 
         # Update
         edited_message = 'Edited message with CRUD'
         post = Post.objects.get(id=post.id)
         post.text = edited_message
-        post.save()
+        post.save(commit_remote=True)
         self.assertEqual(post.text, edited_message)
+
+        fetched_post = Post.remote.fetch(ids=[post.remote_id]).first()
+        self.assertEqual(fetched_post.text, edited_message)
 
         # Delete
         post.delete()
         post1 = Post.objects.get(id=post.id)
         self.assertTrue(post1.archived)
 
+        fetched_post = Post.remote.fetch(ids=[post.remote_id])
+        self.assertFalse(fetched_post)
+
         # Restore
         post.restore()
         post1 = Post.objects.get(id=post.id)
         self.assertFalse(post1.archived)
 
+        fetched_post = Post.remote.fetch(ids=[post1.remote_id])
+        self.assertTrue(fetched_post)
+
         post.delete()
 
         # Create with save()
-        kwargs = post.__dict__
-        del kwargs['id']
-        del kwargs['remote_id']
-        del kwargs['archived']
         post = Post()
-        post.__dict__.update(kwargs)
+        post.__dict__.update(PostFactory.get_mock_params_dict(mock_post))
         post.text = message + message
         post.save(commit_remote=True)
 
         self.assertTrue(post.remote_id > 0)
         self.assertEqual(post.text, message + message)
+
+        fetched_post = Post.remote.fetch(ids=[post.remote_id]).first()
+        self.assertEqual(fetched_post.text, post.text)
 
         post.delete()
 
@@ -374,48 +380,58 @@ class VkontakteWallTest(TestCase):
         user = UserFactory.create(remote_id=TRAVIS_USER_ID)
         post = PostFactory.create(remote_id=TR_POST_ID, wall_owner=user)
         mock_comment = CommentFactory.create(text=text, post=post, wall_owner=user)
-        kwargs = {}
-        for key in mock_comment.__dict__:
-            if not key.startswith('_'):
-                kwargs[key] = mock_comment.__dict__[key]
-        del kwargs['id']
-        del kwargs['remote_id']
-        del kwargs['archived']
 
         # Create
-        comment = Comment.objects.create(**kwargs)
+        comment = Comment.objects.create(
+                **CommentFactory.get_mock_params_dict(
+                    mock_comment, commit_remote=True)
+        )
 
         self.assertTrue(comment.remote_id > 0)
         self.assertEqual(comment.text, text)
+
+        fetched_comment = post.fetch_comments(sort='asc').first()
+        self.assertEqual(fetched_comment.text, text)
 
         # Update
         edited_message = 'Edited comment message'
         comment = Comment.objects.get(id=comment.id)
         comment.text = edited_message
-        comment.save()
+        comment.save(commit_remote=True)
 
         self.assertEqual(comment.text, edited_message)
+
+        fetched_comment = post.fetch_comments(sort='asc').first()
+        self.assertEqual(fetched_comment.text, edited_message)
 
         # Delete
         comment.delete()
         comment1 = Comment.objects.get(id=comment.id)
         self.assertTrue(comment1.archived)
 
+        fetched_ids = [comment.remote_id for comment in post.fetch_comments()]
+        self.assertFalse(comment1.remote_id in fetched_ids)
+
         # Restore
         comment.restore()
         comment1 = Comment.objects.get(id=comment.id)
         self.assertFalse(comment1.archived)
 
+        fetched_ids = [comment.remote_id for comment in post.fetch_comments()]
+        self.assertTrue(comment1.remote_id in fetched_ids)
+
         # Create with save()
-        kwargs = comment.__dict__
-        del kwargs['id']
-        del kwargs['remote_id']
-        del kwargs['archived']
         comment = Comment()
-        comment.__dict__.update(kwargs)
+        comment.__dict__.update(
+            CommentFactory.get_mock_params_dict(mock_comment)
+        )
         comment.text = text + text
         comment.save(commit_remote=True)
 
         self.assertTrue(comment.remote_id > 0)
         self.assertEqual(comment.text, text + text)
+
+        fetched_comment = post.fetch_comments(sort='asc').first()
+        self.assertEqual(fetched_comment.text, text + text)
+
         comment.delete()

@@ -19,12 +19,18 @@ log = logging.getLogger('vkontakte_wall')
 parsed = Signal(providing_args=['sender', 'instance', 'container'])
 
 
+class VkontakteWallCRUDManager(models.Manager):
+    def create(self, **kwargs):
+        commit_remote = kwargs.get('commit_remote', False)
+        result = super(VkontakteWallCRUDManager, self).create(**kwargs)
+        commit_remote = kwargs.get('commit_remote', False)
+        if commit_remote:
+            result.save(commit_remote=commit_remote)
+        return result
+
+
 class VkontakteWallManager(VkontakteManager):
     pass
-
-#    def create(self, commit_remote=True, *args, **kwargs):
-#        return super(VkontakteWallManager, self).create(
-#                commit_remote=True, *args, **kwargs)
 
 
 class PostRemoteManager(VkontakteWallManager, ParseUsersMixin, ParseGroupsMixin):
@@ -219,7 +225,6 @@ class CommentRemoteManager(VkontakteWallManager):
             return post.wall_comments.all()
 
 
-#class WallAbstractModel(VkontakteModel):
 class WallAbstractModel(VkontakteCRUDModel):
     class Meta:
         abstract = True
@@ -351,7 +356,7 @@ class Post(WallAbstractModel):
     online = models.PositiveSmallIntegerField(null=True)
     reply_count = models.PositiveIntegerField(null=True)
 
-    objects = models.Manager()
+    objects = VkontakteWallCRUDManager()
     remote = PostRemoteManager(remote_pk=('remote_id',), methods={
         'get': 'get',
         'getById': 'getById',
@@ -696,7 +701,7 @@ class Comment(WallAbstractModel):
 
     like_users = models.ManyToManyField(User, related_name='like_comments')
 
-    objects = models.Manager()
+    objects = VkontakteWallCRUDManager()
     remote = CommentRemoteManager(remote_pk=('remote_id',), methods={
         'get': 'getComments',
         'create': 'addComment',
